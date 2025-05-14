@@ -16,11 +16,6 @@ interface SiginParams {
 @Injectable()
 export class AuthService {
   constructor(private readonly prisma: PrismaService) {}
-  private generateJwtToken(name: string, id: number) {
-    return jwt.sign({ name, id }, process.env.JSON_TOKEN_KEY, {
-      expiresIn: '1h',
-    });
-  }
 
   async signup({ email, password, name, phone }: SignupParams) {
     const userExists = await this.prisma.user.findUnique({
@@ -31,7 +26,7 @@ export class AuthService {
       throw new ConflictException('User already exists');
     }
     const hashedPassword = await bcrypt.hash(password, 10);
-    console.log('hashedPassword11', hashedPassword);
+
     const user = await this.prisma.user.create({
       data: {
         name,
@@ -56,5 +51,15 @@ export class AuthService {
       throw new HttpException('Invalid credentials', 400);
     }
     return this.generateJwtToken(user.name, user.id);
+  }
+  private generateJwtToken(name: string, id: number) {
+    return jwt.sign({ name, id }, process.env.JSON_TOKEN_KEY, {
+      expiresIn: '1h',
+    });
+  }
+
+  generateProductKey(user_type: UserType, email: string) {
+    const string = `${email}-${user_type}-${process.env.PRODUCT_KEY_SECRET}`;
+    return bcrypt.hash(string, 10);
   }
 }
